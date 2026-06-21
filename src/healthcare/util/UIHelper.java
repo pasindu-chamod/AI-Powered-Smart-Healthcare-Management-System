@@ -1,4 +1,4 @@
-package healthcare.ui.util;
+package healthcare.util;
 
 import java.awt.*;
 import javax.swing.*;

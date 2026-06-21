@@ -3,7 +3,9 @@ package healthcare.ai;
 import java.util.Map;
 
 /**
- * Test class for Naive Bayes Classifier
+ * Test class for Naive Bayes Classifier (DATABASE VERSION)
+ * Requires MySQL/XAMPP running with the `disease_symptom_training` table populated.
+ * See NaiveBayesStandaloneTest.java for a version that needs no database.
  */
 public class TestNaiveBayes {
     
