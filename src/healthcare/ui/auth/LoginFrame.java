@@ -5,6 +5,9 @@ import healthcare.ui.admin.AdminDashboard;
 import healthcare.ui.doctor.DoctorDashboard;
 import healthcare.ui.patient.PatientDashboard;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import javax.imageio.ImageIO;
 import javax.swing.*;
 
 public class LoginFrame extends JFrame {
@@ -14,6 +17,7 @@ public class LoginFrame extends JFrame {
     private JComboBox<String> roleBox;
     private JLabel statusLabel;
     private final AuthService authService = new AuthService();
+    private BufferedImage sideImage;
 
     public LoginFrame() {
         setTitle("Healthcare System - Login");
@@ -21,7 +25,25 @@ public class LoginFrame extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
+        loadSideImage();
         buildUI();
+    }
+
+    /**
+     * Loads the doctor photo used as the background of the left panel.
+     * The image lives at resources/doctor.jpg (project root, alongside src/).
+     * If the file is missing, sideImage stays null and the panel falls
+     * back to the plain blue gradient so the app never crashes.
+     */
+    private void loadSideImage() {
+        try {
+            File imageFile = new File("resources/doctor.jpg");
+            if (imageFile.exists()) {
+                sideImage = ImageIO.read(imageFile);
+            }
+        } catch (Exception e) {
+            System.err.println("Could not load resources/doctor.jpg: " + e.getMessage());
+        }
     }
 
     private void buildUI() {
@@ -34,12 +56,40 @@ public class LoginFrame extends JFrame {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g;
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(
-                    0, 0, new Color(41, 128, 185),
-                    0, getHeight(), new Color(109, 213, 250)
-                );
-                g2.setPaint(gp);
-                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+                if (sideImage != null) {
+                    // Draw the doctor photo scaled to cover the whole panel
+                    // (cover behavior: scale up + crop, so it never stretches/distorts)
+                    int panelW = getWidth();
+                    int panelH = getHeight();
+                    int imgW = sideImage.getWidth();
+                    int imgH = sideImage.getHeight();
+
+                    double scale = Math.max((double) panelW / imgW, (double) panelH / imgH);
+                    int drawW = (int) (imgW * scale);
+                    int drawH = (int) (imgH * scale);
+                    int drawX = (panelW - drawW) / 2;
+                    int drawY = (panelH - drawH) / 2;
+
+                    g2.drawImage(sideImage, drawX, drawY, drawW, drawH, null);
+
+                    // Blue tint overlay on top of the photo (semi-transparent gradient)
+                    GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(20, 60, 110, 175),
+                        0, panelH, new Color(30, 100, 160, 195)
+                    );
+                    g2.setPaint(gp);
+                    g2.fillRect(0, 0, panelW, panelH);
+                } else {
+                    // Fallback: plain blue gradient if the image failed to load
+                    GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(41, 128, 185),
+                        0, getHeight(), new Color(109, 213, 250)
+                    );
+                    g2.setPaint(gp);
+                    g2.fillRect(0, 0, getWidth(), getHeight());
+                }
             }
         };
         leftPanel.setPreferredSize(new Dimension(420, 580));

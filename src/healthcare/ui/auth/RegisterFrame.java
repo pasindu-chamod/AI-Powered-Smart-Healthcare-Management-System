@@ -1,8 +1,11 @@
 package healthcare.ui.auth;
 
 import healthcare.service.AuthService;
-import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import javax.imageio.ImageIO;
+import javax.swing.*;
 
 public class RegisterFrame extends JFrame {
     
@@ -13,22 +16,74 @@ public class RegisterFrame extends JFrame {
     private JLabel statusLabel;
     private JPanel doctorPanel;
     private final AuthService authService = new AuthService();
+    private BufferedImage headerImage;
     
     public RegisterFrame() {
         setTitle("Register - Healthcare System");
-        setSize(680, 700);
+        setSize(680, 760);
         setLocationRelativeTo(null);
         setResizable(false);
+        loadHeaderImage();
         buildUI();
+    }
+
+    /**
+     * Loads the doctor photo used as the register page header background.
+     * Same source image as LoginFrame (resources/doctor.jpg). Falls back
+     * to the plain green header if the file can't be found.
+     */
+    private void loadHeaderImage() {
+        try {
+            File imageFile = new File("resources/doctor.jpg");
+            if (imageFile.exists()) {
+                headerImage = ImageIO.read(imageFile);
+            }
+        } catch (Exception e) {
+            System.err.println("Could not load resources/doctor.jpg: " + e.getMessage());
+        }
     }
     
     private void buildUI() {
         setLayout(new BorderLayout());
         
-        JPanel header = new JPanel();
-        header.setBackground(new Color(46, 204, 113));
-        header.setPreferredSize(new Dimension(0, 60));
-        header.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 15));
+        JPanel header = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+                int panelW = getWidth();
+                int panelH = getHeight();
+
+                if (headerImage != null) {
+                    // Cover-fit: scale the photo to fill the header, cropping overflow
+                    int imgW = headerImage.getWidth();
+                    int imgH = headerImage.getHeight();
+                    double scale = Math.max((double) panelW / imgW, (double) panelH / imgH);
+                    int drawW = (int) (imgW * scale);
+                    int drawH = (int) (imgH * scale);
+                    int drawX = (panelW - drawW) / 2;
+                    int drawY = (panelH - drawH) / 2;
+                    g2.drawImage(headerImage, drawX, drawY, drawW, drawH, null);
+
+                    // Green-blue tint overlay so the white title text stays readable
+                    GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(20, 90, 70, 180),
+                        panelW, panelH, new Color(20, 70, 110, 190)
+                    );
+                    g2.setPaint(gp);
+                    g2.fillRect(0, 0, panelW, panelH);
+                } else {
+                    // Fallback: plain green background if the image failed to load
+                    g2.setColor(new Color(46, 204, 113));
+                    g2.fillRect(0, 0, panelW, panelH);
+                }
+            }
+        };
+        header.setPreferredSize(new Dimension(0, 130));
+        header.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 50));
         
         JLabel title = new JLabel("CREATE YOUR ACCOUNT");
         title.setFont(new Font("SansSerif", Font.BOLD, 20));
