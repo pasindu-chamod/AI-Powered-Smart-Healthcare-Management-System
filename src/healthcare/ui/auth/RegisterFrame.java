@@ -77,7 +77,7 @@ public class RegisterFrame extends JFrame {
                     g2.fillRect(0, 0, panelW, panelH);
                 } else {
                     // Fallback: plain green background if the image failed to load
-                    g2.setColor(new Color(46, 204, 113));
+                    g2.setColor(new Color(45, 203, 112));
                     g2.fillRect(0, 0, panelW, panelH);
                 }
             }
