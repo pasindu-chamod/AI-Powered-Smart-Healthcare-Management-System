@@ -4,40 +4,7 @@ import healthcare.util.DatabaseConnection;
 import java.sql.*;
 import java.util.*;
 
-/**
- * ============================================================================
- *  NAIVE BAYES CLASSIFIER FOR DISEASE PREDICTION
- * ============================================================================
- *
- *  This class implements the FULL Naive Bayes calculation in Java:
- *
- *   STEP 1 (TRAINING): Read raw training records (disease + symptom cases)
- *                       from the database and COUNT occurrences.
- *
- *   STEP 2 (LEARNING):  Use those counts to CALCULATE:
- *                          - Prior probability   P(Disease)
- *                          - Likelihood          P(Symptom | Disease)
- *                        (with Laplace / add-1 smoothing for unseen symptoms)
- *
- *   STEP 3 (PREDICTION): Given a new list of symptoms, apply Bayes' Theorem
- *                          P(Disease | Symptoms) ∝ P(Disease) x ∏ P(Symptom_i | Disease)
- *                        to find the most probable disease.
- *
- *  Bayes' Theorem reminder:
- *
- *      P(Disease | Symptoms) = [ P(Symptoms | Disease) x P(Disease) ] / P(Symptoms)
- *
- *  Since P(Symptoms) is the same for every disease being compared, it is
- *  dropped (we only need it to pick the BEST disease, and then we
- *  re-normalize at the end to turn the scores into percentages).
- *
- *  "Naive" assumption: every symptom is conditionally independent given the
- *  disease, so:
- *
- *      P(Symptoms | Disease) = P(Symptom_1|Disease) x P(Symptom_2|Disease) x ...
- *
- * ============================================================================
- */
+
 public class NaiveBayesClassifier {
 
     // ---- Raw counts gathered from training data (the "counting" step) ----
