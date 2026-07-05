@@ -1,9 +1,16 @@
 package healthcare.ui.doctor;
 
+import healthcare.dao.impl.AppointmentDAOImpl;
+import healthcare.dao.impl.LabReportDAOImpl;
+import healthcare.dao.impl.PrescriptionDAOImpl;
+import healthcare.model.Appointment;
 import healthcare.model.Doctor;
 import healthcare.service.AuthService;
 import healthcare.ui.auth.LoginFrame;
 import java.awt.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import javax.swing.*;
 
 public class DoctorDashboard extends JFrame {
@@ -192,10 +199,10 @@ public class DoctorDashboard extends JFrame {
         stats.setBorder(BorderFactory.createEmptyBorder(30, 0, 0, 0));
         stats.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        stats.add(statCard("APPOINTMENTS", "8", new Color(22, 160, 133)));
-        stats.add(statCard("PATIENTS", "24", new Color(52, 152, 219)));
-        stats.add(statCard("PRESCRIPTIONS", "12", new Color(155, 89, 182)));
-        stats.add(statCard("LAB REPORTS", "5", new Color(243, 156, 18)));
+        stats.add(statCard("APPOINTMENTS", String.valueOf(countAppointments()), new Color(22, 160, 133)));
+        stats.add(statCard("PATIENTS", String.valueOf(countDistinctPatients()), new Color(52, 152, 219)));
+        stats.add(statCard("PRESCRIPTIONS", String.valueOf(countPrescriptions()), new Color(155, 89, 182)));
+        stats.add(statCard("LAB REPORTS", String.valueOf(countLabReports()), new Color(243, 156, 18)));
 
         center.add(title);
         center.add(Box.createVerticalStrut(10));
@@ -204,6 +211,43 @@ public class DoctorDashboard extends JFrame {
 
         panel.add(center, BorderLayout.CENTER);
         return panel;
+    }
+
+    private int countAppointments() {
+        try {
+            return new AppointmentDAOImpl().getAppointmentsByDoctor(doctor.getDoctorId()).size();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private int countDistinctPatients() {
+        try {
+            List<Appointment> list = new AppointmentDAOImpl().getAppointmentsByDoctor(doctor.getDoctorId());
+            Set<Integer> distinctPatientIds = new HashSet<>();
+            for (Appointment a : list) {
+                distinctPatientIds.add(a.getPatientId());
+            }
+            return distinctPatientIds.size();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private int countPrescriptions() {
+        try {
+            return new PrescriptionDAOImpl().getPrescriptionsByDoctor(doctor.getDoctorId()).size();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private int countLabReports() {
+        try {
+            return new LabReportDAOImpl().getReportsByDoctor(doctor.getDoctorId()).size();
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     private JPanel statCard(String label, String value, Color color) {

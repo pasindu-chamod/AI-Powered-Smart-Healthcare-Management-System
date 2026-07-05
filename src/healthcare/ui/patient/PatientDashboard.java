@@ -3,7 +3,9 @@ package healthcare.ui.patient;
 import healthcare.model.Patient;
 import healthcare.service.AuthService;
 import healthcare.ui.auth.LoginFrame;
+import healthcare.util.DatabaseConnection;
 import java.awt.*;
+import java.sql.*;
 import javax.swing.*;
 
 public class PatientDashboard extends JFrame {
@@ -31,6 +33,20 @@ public class PatientDashboard extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         buildUI();
+    }
+
+    // ── Helper: run a COUNT query and return the integer result ──────────────
+    private int queryCount(String sql, int patientId) {
+        try {
+            Connection conn = DatabaseConnection.getInstance().getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, patientId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     private void buildUI() {
@@ -73,7 +89,7 @@ public class PatientDashboard extends JFrame {
         topBar.add(titleLabel, BorderLayout.WEST);
         topBar.add(rightSection, BorderLayout.EAST);
 
-        // SIDEBAR - use JPanel with custom painting
+        // SIDEBAR
         JPanel sidebar = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -115,7 +131,7 @@ public class PatientDashboard extends JFrame {
         contentPanel.add(new MyAppointmentsPanel(), "appointments");
         contentPanel.add(new MyPrescriptionsPanel(), "prescriptions");
         contentPanel.add(new AISymptomPanel(), "ai");
-        contentPanel.add(new LabReportsPanel(), "lab");
+        contentPanel.add(new PatientLabReportsPanel(), "lab");
         contentPanel.add(new EmergencyPanel(), "emergency");
 
         add(topBar, BorderLayout.NORTH);
@@ -162,13 +178,13 @@ public class PatientDashboard extends JFrame {
         });
 
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent e) {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
                 if (btn != activeButton) {
                     btn.setBackground(new Color(60, 80, 100));
                     btn.repaint();
                 }
             }
-            public void mouseExited(java.awt.event.MouseEvent e) {
+            public void mouseExited(java.awt.event.MouseEvent evt) {
                 if (btn != activeButton) {
                     btn.setBackground(new Color(44, 62, 80));
                     btn.repaint();
@@ -179,6 +195,19 @@ public class PatientDashboard extends JFrame {
     }
 
     private JPanel homePanel() {
+        int pid = patient.getPatientId();
+
+        // ── Real counts from database ─────────────────────────────────────────
+        int appointmentCount = queryCount(
+            "SELECT COUNT(*) FROM appointments WHERE patient_id = ?", pid);
+        int prescriptionCount = queryCount(
+            "SELECT COUNT(*) FROM prescriptions WHERE patient_id = ?", pid);
+        int labReportCount = queryCount(
+            "SELECT COUNT(*) FROM lab_reports WHERE patient_id = ?", pid);
+        int aiCheckCount = queryCount(
+            "SELECT COUNT(*) FROM ai_predictions WHERE patient_id = ?", pid);
+
+        // ── Build home panel ──────────────────────────────────────────────────
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
@@ -203,10 +232,11 @@ public class PatientDashboard extends JFrame {
         stats.setBorder(BorderFactory.createEmptyBorder(30, 0, 0, 0));
         stats.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        stats.add(statCard("APPOINTMENTS", "5", new Color(52, 152, 219)));
-        stats.add(statCard("PRESCRIPTIONS", "3", new Color(46, 204, 113)));
-        stats.add(statCard("LAB REPORTS", "2", new Color(155, 89, 182)));
-        stats.add(statCard("AI CHECKS", "1", new Color(243, 156, 18)));
+        // Real numbers from DB instead of hard-coded values
+        stats.add(statCard("APPOINTMENTS",  String.valueOf(appointmentCount),  new Color(52, 152, 219)));
+        stats.add(statCard("PRESCRIPTIONS", String.valueOf(prescriptionCount), new Color(46, 204, 113)));
+        stats.add(statCard("LAB REPORTS",   String.valueOf(labReportCount),    new Color(155, 89, 182)));
+        stats.add(statCard("AI CHECKS",     String.valueOf(aiCheckCount),      new Color(243, 156, 18)));
 
         center.add(title);
         center.add(Box.createVerticalStrut(10));

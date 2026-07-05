@@ -203,18 +203,35 @@ public class NaiveBayesClassifier {
         System.out.println("\n🤖 === NAIVE BAYES PREDICTION ===");
         System.out.println("Input Symptoms: " + Arrays.toString(symptoms));
 
-        // Calculate log posterior for each disease:
-        //   log P(Disease|Symptoms) = log P(Disease) + Σ log P(Symptom_i|Disease)
+        // Human-readable trace of the actual Bayes-theorem working, built in the
+        // exact classic textbook style: P(X|Ci) = product of P(symptom|Ci), then
+        // compare P(X|Ci) x P(Ci) across all classes and pick the largest one.
+        // (Direct multiplication - not log-space - so it matches how it's taught
+        // and worked by hand in the course material.)
+        StringBuilder trace = new StringBuilder();
+        trace.append("Naive Bayes Classifier - Maximum A Posteriori (MAP) rule:\n");
+        trace.append("Predict the class Ci that maximizes P(X|Ci) x P(Ci)\n");
+        trace.append("where P(X|Ci) = P(symptom_1|Ci) x P(symptom_2|Ci) x ... (class-conditional independence)\n\n");
+
+        // Direct-multiplication score for each disease (this is what actually
+        // gets compared and reported - the classic P(X|Ci)P(Ci) style).
+        Map<String, Double> diseaseScore = new HashMap<>();
+        // Also keep log-scores internally as a numerically-safe tie breaker for
+        // ranking when raw products underflow to 0.0 with many symptoms.
         Map<String, Double> logPosterior = new HashMap<>();
 
         for (String disease : diseaseSymptomProb.keySet()) {
-            double logProb = Math.log(diseasePrior.get(disease));
-            System.out.printf("   [%s] start with log P(Disease) = log(%.4f) = %.4f%n",
-                    disease, diseasePrior.get(disease), logProb);
+            double prior = diseasePrior.get(disease);
+            double logProb = Math.log(prior);
+
+            double likelihoodProduct = 1.0;
+            StringBuilder factorLine = new StringBuilder();
+            factorLine.append(String.format("P(X|%s) = ", disease));
 
             Map<String, Double> symptomProbs = diseaseSymptomProb.get(disease);
 
-            for (String symptom : symptoms) {
+            for (int i = 0; i < symptoms.length; i++) {
+                String symptom = symptoms[i];
                 double symptomProb;
                 if (symptomProbs.containsKey(symptom)) {
                     symptomProb = symptomProbs.get(symptom);
@@ -225,11 +242,24 @@ public class NaiveBayesClassifier {
                             / (diseaseCaseCount.getOrDefault(disease, 0) + LAPLACE_SMOOTHING * allSymptoms.size());
                 }
                 logProb += Math.log(symptomProb);
-                System.out.printf("      + log P(%s|%s) = log(%.4f) = %.4f  -> running total = %.4f%n",
-                        symptom, disease, symptomProb, Math.log(symptomProb), logProb);
+                likelihoodProduct *= symptomProb;
+
+                factorLine.append(String.format("P(%s|%s)", symptom, disease));
+                factorLine.append(i < symptoms.length - 1 ? " x " : "");
             }
 
+            double score = prior * likelihoodProduct;
+            diseaseScore.put(disease, score);
             logPosterior.put(disease, logProb);
+
+            trace.append(String.format("[%s]%n", disease));
+            trace.append(String.format("  %s%n", factorLine));
+            trace.append(String.format("       = %.6f%n", likelihoodProduct));
+            trace.append(String.format("  P(X|%s) x P(%s) = %.6f x %.4f = %.8f%n%n",
+                    disease, disease, likelihoodProduct, prior, score));
+
+            System.out.printf("   [%s] P(X|Disease)=%.6f  P(Disease)=%.4f  Score=%.8f%n",
+                    disease, likelihoodProduct, prior, score);
         }
 
         // Find disease with maximum posterior (most probable disease)
@@ -249,6 +279,22 @@ public class NaiveBayesClassifier {
             return result;
         }
 
+        // Classic textbook conclusion line: compare the P(X|Ci) x P(Ci) scores
+        // directly and declare the single winning class - this is the exact
+        // "Since P(X|No)P(No) > P(X|Yes)P(Yes) => Class = No" style used in
+        // the course material.
+        List<Map.Entry<String, Double>> scoreRanking = new ArrayList<>(diseaseScore.entrySet());
+        scoreRanking.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
+
+        trace.append("----------------------------------------\n");
+        trace.append("Comparing P(X|Ci) x P(Ci) across all classes:\n");
+        for (Map.Entry<String, Double> entry : scoreRanking) {
+            trace.append(String.format("  %s : %.8f%n", entry.getKey(), entry.getValue()));
+        }
+        trace.append(String.format("%nSince P(X|%s)P(%s) is the largest value among all classes,%n",
+                predictedDisease, predictedDisease));
+        trace.append(String.format("the Naive Bayes classifier predicts:  Disease = %s%n", predictedDisease));
+
         // Convert log probabilities to normalized percentages (softmax-style normalization)
         List<Map.Entry<String, Double>> sortedDiseases = new ArrayList<>(logPosterior.entrySet());
         sortedDiseases.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
@@ -260,7 +306,19 @@ public class NaiveBayesClassifier {
 
         double confidence = (Math.exp(maxLogProb - maxLogProb) / sumExp) * 100;
 
-        // Get top 3 predictions
+        // Full posterior probability distribution - EVERY disease the model
+        // knows about, each with its own calculated probability (not just the
+        // top guess). This is the real Bayes-theorem output: P(Disease|Symptoms)
+        // for every class, which is what the ML syllabus expects to see.
+        List<String> allPredictions = new ArrayList<>();
+        Map<String, Double> allProbabilities = new LinkedHashMap<>();
+        for (Map.Entry<String, Double> entry : sortedDiseases) {
+            double prob = (Math.exp(entry.getValue() - maxLogProb) / sumExp) * 100;
+            allPredictions.add(entry.getKey() + " (" + String.format("%.2f%%", prob) + ")");
+            allProbabilities.put(entry.getKey(), prob);
+        }
+
+        // Top 3 predictions
         List<String> top3 = new ArrayList<>();
         for (int i = 0; i < Math.min(3, sortedDiseases.size()); i++) {
             String disease = sortedDiseases.get(i).getKey();
@@ -279,6 +337,9 @@ public class NaiveBayesClassifier {
         result.put("description", description);
         result.put("medicines", medicines);
         result.put("top_3_predictions", top3);
+        result.put("all_predictions", allPredictions);
+        result.put("all_probabilities", allProbabilities);
+        result.put("calculation_trace", trace.toString());
         result.put("algorithm", "Naive Bayes Classifier");
 
         System.out.println("✅ Predicted: " + predictedDisease);

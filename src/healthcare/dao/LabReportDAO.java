@@ -8,4 +8,6 @@ public interface LabReportDAO {
     List<LabReport> getAllReports();
     boolean addReport(LabReport report);
     boolean updateReport(LabReport report);
+    List<LabReport> getReportsByDoctor(int doctorId);
+    boolean deleteReport(int reportId);
 }

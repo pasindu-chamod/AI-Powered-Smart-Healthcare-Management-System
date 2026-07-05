@@ -1,8 +1,8 @@
 package healthcare.ui.admin;
 
 import healthcare.dao.impl.*;
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
 public class AdminOverviewPanel extends JPanel {
     
@@ -28,19 +28,25 @@ public class AdminOverviewPanel extends JPanel {
         grid.setBackground(Color.WHITE);
         grid.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
         
-        int patients = 0, doctors = 0, appointments = 0;
+        int patients = 0, doctors = 0, appointments = 0, prescriptions = 0, aiPredictions = 0, labReports = 0;
         try {
             patients = new PatientDAOImpl().getTotalCount();
             doctors = new DoctorDAOImpl().getTotalCount();
             appointments = new AppointmentDAOImpl().getTotalCount();
+            // These three DAOs don't have a dedicated count query, so use the
+            // size of the full list they already expose - same real numbers,
+            // no new DB round trip needed.
+            prescriptions = new PrescriptionDAOImpl().getAllPrescriptions().size();
+            aiPredictions = new AIPredictionDAOImpl().getAllPredictions().size();
+            labReports = new LabReportDAOImpl().getAllReports().size();
         } catch (Exception e) {}
         
         grid.add(bigCard("TOTAL PATIENTS", String.valueOf(patients), new Color(52, 152, 219)));
         grid.add(bigCard("TOTAL DOCTORS", String.valueOf(doctors), new Color(46, 204, 113)));
         grid.add(bigCard("APPOINTMENTS", String.valueOf(appointments), new Color(155, 89, 182)));
-        grid.add(bigCard("PRESCRIPTIONS", "25", new Color(243, 156, 18)));
-        grid.add(bigCard("AI PREDICTIONS", "100", new Color(231, 76, 60)));
-        grid.add(bigCard("LAB REPORTS", "50", new Color(26, 188, 156)));
+        grid.add(bigCard("PRESCRIPTIONS", String.valueOf(prescriptions), new Color(243, 156, 18)));
+        grid.add(bigCard("AI PREDICTIONS", String.valueOf(aiPredictions), new Color(231, 76, 60)));
+        grid.add(bigCard("LAB REPORTS", String.valueOf(labReports), new Color(26, 188, 156)));
         
         add(grid, BorderLayout.CENTER);
     }

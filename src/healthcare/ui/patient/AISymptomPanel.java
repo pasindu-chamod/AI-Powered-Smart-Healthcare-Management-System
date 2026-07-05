@@ -24,6 +24,7 @@ public class AISymptomPanel extends JPanel {
     private JTextArea resultArea;
     private DefaultTableModel historyModel;
     private JLabel selectedCountLabel;
+    private String lastCalculationTrace = "Run a prediction first to see the Bayes' Theorem calculation steps.";
 
     public AISymptomPanel() {
         buildUI();
@@ -71,23 +72,28 @@ public class AISymptomPanel extends JPanel {
         selectTitle.setForeground(new Color(44, 62, 80));
         symptomsCard.add(selectTitle, BorderLayout.NORTH);
 
-        // Symptom buttons in wrap layout
-        JPanel buttonGrid = new JPanel(new GridLayout(0, 4, 8, 8));
+        // Symptom buttons in wrap layout - sorted alphabetically, compact size so
+        // every symptom learned from the database is visible without huge tiles
+        java.util.List<String> allSymptomsList = new ArrayList<>(aiPredictor.getAllSymptoms());
+        java.util.Collections.sort(allSymptomsList);
+
+        JPanel buttonGrid = new JPanel(new java.awt.GridLayout(0, 6, 6, 6));
         buttonGrid.setBackground(Color.WHITE);
 
-        List<String> allSymptoms = aiPredictor.getAllSymptoms();
+        List<String> allSymptoms = allSymptomsList;
         for (String symptom : allSymptoms) {
             String displayName = symptom.replace("_", " ").toUpperCase();
             JToggleButton btn = new JToggleButton(displayName);
-            btn.setFont(new Font("SansSerif", Font.BOLD, 11));
+            btn.setFont(new Font("SansSerif", Font.BOLD, 9));
             btn.setBackground(new Color(235, 240, 248));
             btn.setForeground(new Color(44, 62, 80));
             btn.setFocusPainted(false);
             btn.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(189, 195, 199), 1),
-                BorderFactory.createEmptyBorder(8, 5, 8, 5)
+                BorderFactory.createEmptyBorder(4, 3, 4, 3)
             ));
-            btn.setPreferredSize(new Dimension(140, 40));
+            btn.setPreferredSize(new Dimension(95, 26));
+            btn.setToolTipText(displayName);
             btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
             btn.addItemListener(e -> {
@@ -109,7 +115,8 @@ public class AISymptomPanel extends JPanel {
 
         JScrollPane symptomScroll = new JScrollPane(buttonGrid);
         symptomScroll.setBorder(null);
-        symptomScroll.setPreferredSize(new Dimension(0, 250));
+        symptomScroll.getVerticalScrollBar().setUnitIncrement(16);
+        symptomScroll.setPreferredSize(new Dimension(0, 380));
         symptomsCard.add(symptomScroll, BorderLayout.CENTER);
 
         // Buttons
@@ -125,8 +132,13 @@ public class AISymptomPanel extends JPanel {
         clearBtn.setPreferredSize(new Dimension(140, 42));
         clearBtn.addActionListener(e -> clearAll());
 
+        JButton showWorkBtn = createButton("  SHOW CALCULATION  ", new Color(52, 152, 219), new Color(41, 128, 185));
+        showWorkBtn.setPreferredSize(new Dimension(190, 42));
+        showWorkBtn.addActionListener(e -> showCalculation());
+
         btnPanel.add(predictBtn);
         btnPanel.add(clearBtn);
+        btnPanel.add(showWorkBtn);
         symptomsCard.add(btnPanel, BorderLayout.SOUTH);
 
         // RIGHT PANEL: Results + History
@@ -288,23 +300,29 @@ public class AISymptomPanel extends JPanel {
             double confidence = (Double) result.get("confidence");
             String description = (String) result.get("description");
             List<String> medicines = (List<String>) result.get("medicines");
-            List<String> top3 = (List<String>) result.get("top_3_predictions");
+            lastCalculationTrace = (String) result.get("calculation_trace");
 
             StringBuilder sb = new StringBuilder();
             sb.append("========================================\n");
             sb.append("        AI PREDICTION RESULT\n");
             sb.append("========================================\n\n");
-            sb.append("Disease: ").append(disease).append("\n");
-            sb.append("Confidence: ").append(String.format("%.2f%%", confidence)).append("\n\n");
+            sb.append("Naive Bayes Classifier (MAP rule):\n");
+            sb.append("Predicts the single class that maximizes\n");
+            sb.append("P(X|Disease) x P(Disease)\n\n");
+            sb.append(">>> Predicted Disease: ").append(disease).append(" <<<\n\n");
             sb.append("Description:\n  ").append(description).append("\n\n");
             sb.append("Recommended Medicines:\n");
             for (String med : medicines) sb.append("  - ").append(med).append("\n");
-            sb.append("\nTop 3 Predictions:\n");
-            for (int i = 0; i < top3.size(); i++) {
-                sb.append("  ").append(i + 1).append(". ").append(top3.get(i)).append("\n");
-            }
+
+            sb.append("\n(Relative confidence among candidates: ")
+              .append(String.format("%.2f%%", confidence)).append(")\n");
+            sb.append("\nClick 'SHOW CALCULATION' to see the full\n");
+            sb.append("P(X|Ci) x P(Ci) working for every disease\n");
+            sb.append("compared, exactly as taught in the course.\n");
+
             sb.append("\nIMPORTANT: Please consult a doctor!\n");
             resultArea.setText(sb.toString());
+            resultArea.setCaretPosition(0);
 
             AIPrediction pred = new AIPrediction();
             pred.setPatientId(patient.getPatientId());
@@ -317,6 +335,23 @@ public class AISymptomPanel extends JPanel {
         } else {
             resultArea.setText("No disease matched your symptoms.\nPlease consult a doctor.");
         }
+    }
+
+    /**
+     * Shows the raw Bayes' Theorem working (Prior probability and Likelihood
+     * for each symptom, per disease) used to reach the last prediction -
+     * demonstrates that this is a genuine probability-based classifier and
+     * not a single hardcoded lookup answer.
+     */
+    private void showCalculation() {
+        JTextArea traceArea = new JTextArea(lastCalculationTrace);
+        traceArea.setEditable(false);
+        traceArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        traceArea.setMargin(new Insets(10, 10, 10, 10));
+        JScrollPane scroll = new JScrollPane(traceArea);
+        scroll.setPreferredSize(new Dimension(650, 500));
+        JOptionPane.showMessageDialog(this, scroll,
+                "Naive Bayes Calculation Steps", JOptionPane.PLAIN_MESSAGE);
     }
 
     private void loadHistory() {
