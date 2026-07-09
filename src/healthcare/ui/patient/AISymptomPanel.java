@@ -183,7 +183,7 @@ public class AISymptomPanel extends JPanel {
         historyTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         historyCard.add(historyTitle, BorderLayout.NORTH);
 
-        String[] cols = {"Date", "Disease", "Confidence"};
+        String[] cols = {"Date", "Disease"};
         historyModel = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int r, int c) { return false; }
@@ -298,27 +298,20 @@ public class AISymptomPanel extends JPanel {
         if ("success".equals(result.get("status"))) {
             String disease = (String) result.get("predicted_disease");
             double confidence = (Double) result.get("confidence");
-            String description = (String) result.get("description");
             List<String> medicines = (List<String>) result.get("medicines");
             lastCalculationTrace = (String) result.get("calculation_trace");
 
+            // NOTE: Only the disease and the medicines are shown here.
+            // The Naive Bayes classifier's job is just to output the predicted
+            // class (disease) - it does not "explain" itself, so the extra
+            // description text has been removed from this result view.
             StringBuilder sb = new StringBuilder();
             sb.append("========================================\n");
             sb.append("        AI PREDICTION RESULT\n");
             sb.append("========================================\n\n");
-            sb.append("Naive Bayes Classifier (MAP rule):\n");
-            sb.append("Predicts the single class that maximizes\n");
-            sb.append("P(X|Disease) x P(Disease)\n\n");
             sb.append(">>> Predicted Disease: ").append(disease).append(" <<<\n\n");
-            sb.append("Description:\n  ").append(description).append("\n\n");
             sb.append("Recommended Medicines:\n");
             for (String med : medicines) sb.append("  - ").append(med).append("\n");
-
-            sb.append("\n(Relative confidence among candidates: ")
-              .append(String.format("%.2f%%", confidence)).append(")\n");
-            sb.append("\nClick 'SHOW CALCULATION' to see the full\n");
-            sb.append("P(X|Ci) x P(Ci) working for every disease\n");
-            sb.append("compared, exactly as taught in the course.\n");
 
             sb.append("\nIMPORTANT: Please consult a doctor!\n");
             resultArea.setText(sb.toString());
@@ -359,8 +352,7 @@ public class AISymptomPanel extends JPanel {
         List<AIPrediction> list = predictionDAO.getPredictionsByPatient(patient.getPatientId());
         for (AIPrediction p : list) {
             historyModel.addRow(new Object[]{
-                p.getCreatedAt(), p.getPredictedDisease(),
-                String.format("%.1f%%", p.getConfidenceScore())
+                p.getCreatedAt(), p.getPredictedDisease()
             });
         }
     }

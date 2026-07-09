@@ -16,7 +16,7 @@ import java.util.*;
  *
  *  The real classifier used by the application (NaiveBayesClassifier.java)
  *  loads training cases from the `disease_symptom_training` table and does
- *  the identical counting + probability calculation shown here.
+ 
  * ============================================================================
  */
 public class NaiveBayesCore {

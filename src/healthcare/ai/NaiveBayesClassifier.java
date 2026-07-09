@@ -41,26 +41,9 @@ public class NaiveBayesClassifier {
         }
     }
 
-    // ========================================================================
+    
     //  STEP 1: LOAD RAW TRAINING DATA AND COUNT (no probabilities yet - just counts)
-    // ========================================================================
-    /**
-     * Reads raw training cases from the database table `disease_symptom_training`.
-     * Expected schema (one row per observed symptom occurring in a case):
-     *
-     *   CREATE TABLE disease_symptom_training (
-     *       training_id  INT AUTO_INCREMENT PRIMARY KEY,
-     *       case_id      INT NOT NULL,        -- groups symptoms belonging to the same case
-     *       disease_name VARCHAR(100) NOT NULL,
-     *       symptom_name VARCHAR(100) NOT NULL
-     *   );
-     *
-     * Each distinct case_id represents one training example/patient case.
-     * Counting how many distinct case_ids exist per disease gives us the
-     * raw frequency needed to calculate the prior P(Disease).
-     * Counting how many of those cases mention each symptom gives us the
-     * raw frequency needed to calculate the likelihood P(Symptom|Disease).
-     */
+   
     private boolean loadRawTrainingData() {
         // caseDiseaseMap: case_id -> disease_name  (so we count each case once)
         Map<Integer, String> caseDiseaseMap = new HashMap<>();
@@ -97,7 +80,7 @@ public class NaiveBayesClassifier {
             return false;
         }
 
-        // ---- COUNTING: tally up cases per disease, and symptom occurrences per disease ----
+        // -- COUNTING: tally up cases per disease, and symptom occurrences per disease --
         for (Map.Entry<Integer, String> entry : caseDiseaseMap.entrySet()) {
             int caseId = entry.getKey();
             String disease = entry.getValue();
@@ -124,14 +107,8 @@ public class NaiveBayesClassifier {
         return true;
     }
 
-    // ========================================================================
-    //  STEP 2: TRAIN THE MODEL -> CALCULATE PRIOR & LIKELIHOOD FROM THE COUNTS
-    // ========================================================================
-    /**
-     * This is where the actual Naive Bayes "learning" happens.
-     * Nothing here comes pre-calculated from the database - every probability
-     * is derived mathematically from the raw counts gathered in Step 1.
-     */
+   
+    //   TRAIN THE MODEL 
     private void trainModel() {
         System.out.println("\n🧮 === TRAINING NAIVE BAYES MODEL (calculating probabilities) ===");
 
