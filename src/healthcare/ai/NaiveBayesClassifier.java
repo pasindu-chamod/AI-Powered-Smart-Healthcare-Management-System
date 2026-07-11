@@ -126,13 +126,7 @@ public class NaiveBayesClassifier {
                     disease, casesForDisease, totalCases, prior);
 
             // ---------- LIKELIHOOD PROBABILITY (per symptom), WITH LAPLACE SMOOTHING ----------
-            //   P(Symptom | Disease) = (count of this symptom in this disease's cases) + 1
-            //                          -----------------------------------------------------
-            //                           (total cases of this disease) + (number of distinct symptoms)
-            //
-            //   The "+1" / "+vocabularySize" is Laplace (add-one) smoothing: it stops the
-            //   probability from ever being exactly zero just because one symptom was
-            //   never seen with this disease in the training set.
+            
             Map<String, Integer> symptomCounts = symptomCountPerDisease.getOrDefault(disease, new HashMap<>());
             Map<String, Double> likelihoods = new HashMap<>();
 
